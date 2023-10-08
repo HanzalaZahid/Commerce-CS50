@@ -1,0 +1,70 @@
+{% extends "auctions/layout.html" %}
+{% block body %}
+
+    <div class="listing_details">
+        <div class="title">
+            {{ listing.title }}
+        </div>
+        <div class="image">
+            <img src="{{ listing.image }}" alt="">
+        </div>
+        <div class="category">
+            <div class="label">
+                Category
+            </div>
+            {{ listing.category }}
+        </div>
+        <div class="description">
+            <div class="label">
+                Description
+            </div>
+            {{ listing.description }}
+        </div>
+        <div class="price">
+            <div class="label">
+                Current Bid
+            </div>
+            {{ highestbid }}
+        </div>
+    </div>
+
+    {% if user.is_authenticated %}
+    {% if messages %}
+        <ul>
+            {% for message in messages %}
+            <li {% if message.tags %} class="{{message.tags}}" {% endif %}>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+    <form action="{% url 'watchlist' listing_id=listing.id %}" method='POST'>
+        {% csrf_token %}
+        <input type='submit' value='{% if watchlist %} Remove From {% else %}Add to {% endif %} Watchlist' />
+    </form>
+    <form action="{% url 'bid' listing_id=listing.id %}" method="post" class="bid_form">
+        {% csrf_token %}
+        {{ bid_form}}
+        <input type='submit' value="Bid">
+    </form>
+    
+    
+    <div class="add_comment">
+        <form action="{% url 'comment' listing_id=listing.id %}" method="post">
+            {% csrf_token %}
+            <textarea name="comment" cols="30" rows="10"></textarea>
+            <input type="submit" value="Post">
+        </form>
+    </div>
+    {% else %}
+    <p>Login to Add Comment</p>
+    {% endif %}
+    <div class="comments">
+        <ul>
+            {% for comment in comments %}
+                <li>
+                    <div class="user">{{ comment.user }}</div>
+                    <div class="text">{{ comment.comment }}</div>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endblock %}
