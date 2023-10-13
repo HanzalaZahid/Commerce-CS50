@@ -1,4 +1,5 @@
 from django import forms
+from django.db.models import Max
 from django.contrib.auth import authenticate, login, logout
 from django.db import IntegrityError
 from django.http import HttpResponse, HttpResponseRedirect
@@ -20,7 +21,7 @@ class BidForm(forms.Form):
 
 # VIEWS GOES HERE
 def index(request):
-    listings = Listing.objects.all()
+    listings = Listing.objects.filter(status = True)
     return render(request, "auctions/index.html", {
         'listings'   :   listings,
     })
@@ -77,10 +78,25 @@ def register(request):
     else:
         return render(request, "auctions/register.html")
 
+def disbale_listing(request, listing_id):
+    if request.method == 'POST':
+        try:
+            listing = Listing.objects.get(id = listing_id)
+            listing.status = False
+            listing.save()
+            return render(request, 'auctions/index.html')
+        except Listing.DoesNotExist:
+            return render(request, 'auctions/error.html', {
+            'message' : '404 - Listing Not Found'
+            })
+    else:
+        return render(request, 'auctions/error.html', {
+            'message': 'Not Allowed'
+        })
 
 def show(request, listing_id):
     try:
-        listing = Listing.objects.get(id = listing_id)
+        listing = Listing.objects.get(id = listing_id, status = True)
     except Listing.DoesNotExist:
         return render(request, 'auctions/error.html', {
             'message' : '404 - Listing Not Found'
@@ -89,15 +105,18 @@ def show(request, listing_id):
     bid_form = BidForm(listing=listing)
     comments = Comment.objects.filter(listing = listing_id)
     highestbid = Bid.objects.filter(listing = listing).order_by('-price').first()
-    user_id = request.user.id
-    user = User.objects.get(id=user_id)
-    existing_watchlist = Watchlist.objects.filter(user = user, listing = listing)
+    if request.user.is_authenticated:
+        user_id = request.user.id
+        user = User.objects.get(id=user_id)
+        existing_watchlist = Watchlist.objects.filter(user = user, listing = listing)
+    else:
+        existing_watchlist = None
     return render(request, 'auctions/show.html', {
         'listing' : listing,
         'comments' : comments,
         'bid_form' : bid_form,
         'highestbid' : highestbid.price if highestbid else None,
-        'watchlist' : existing_watchlist if existing_watchlist.exists() else None
+        'watchlist' : existing_watchlist
     })
 
 def bid(request, listing_id):
@@ -152,4 +171,18 @@ def watchlist(request, listing_id):
     else:
         return render(request, 'auctions/error.html', {
             'message' : 'Not Allowed'
+        })
+        
+def show_watchlist(request):
+    if request.user.is_authenticated:
+        watchlist = Watchlist.objects.filter(user = request.user)
+        for item in watchlist:
+            highest_bid = Bid.objects.filter(listing = item.listing).aggregate(Max('price'))
+            item.price = highest_bid['price__max']
+        return render(request, 'auctions/watchlist.html', {
+            'watchlist' : watchlist
+        })
+    else:
+        return render(request, 'auctions/error.html', {
+            'message': 'Login To View Watchlist'
         })

@@ -17,11 +17,13 @@ class Category(models.Model):
 
 
 class Listing(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='listing_user')
     title = models.CharField('Title', max_length=256)
     description = models.TextField('Description')
     image = models.URLField('Image')
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='listings')
-    watchlist = models.ManyToManyField(User, related_name='watchlist_listings', blank=True)
+    status = models.BooleanField('Status', default=True)
+    # watchlist = models.ManyToManyField(User, related_name='watchlist_listings', blank=True)
     created_at = models.DateTimeField('Created At', default=timezone.now, editable=False)
     
     def __str__(self):
@@ -47,8 +49,8 @@ class Comment(models.Model):
     
 
 class Watchlist(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='Watchlist')
-    listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name='Watchlist')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user')
+    listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name='listing')
 
     def __str__(self):
         return f'{self.user} -> {self.listing}'

@@ -15,6 +15,7 @@
             {{ listing.category }}
         </div>
         <div class="description">
+            User: {{ listing.user }}
             <div class="label">
                 Description
             </div>
@@ -29,33 +30,39 @@
     </div>
 
     {% if user.is_authenticated %}
-    {% if messages %}
-        <ul>
-            {% for message in messages %}
-            <li {% if message.tags %} class="{{message.tags}}" {% endif %}>{{ message }}</li>
-            {% endfor %}
-        </ul>
-    {% endif %}
-    <form action="{% url 'watchlist' listing_id=listing.id %}" method='POST'>
-        {% csrf_token %}
-        <input type='submit' value='{% if watchlist %} Remove From {% else %}Add to {% endif %} Watchlist' />
-    </form>
-    <form action="{% url 'bid' listing_id=listing.id %}" method="post" class="bid_form">
-        {% csrf_token %}
-        {{ bid_form}}
-        <input type='submit' value="Bid">
-    </form>
-    
-    
-    <div class="add_comment">
-        <form action="{% url 'comment' listing_id=listing.id %}" method="post">
-            {% csrf_token %}
-            <textarea name="comment" cols="30" rows="10"></textarea>
-            <input type="submit" value="Post">
-        </form>
-    </div>
+        {% if messages %}
+            <ul>
+                {% for message in messages %}
+                <li {% if message.tags %} class="{{message.tags}}" {% endif %}>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        {% if listing.user.id == user.id %}
+            <form action="{% url 'disable_listing' listing_id=listing.id %}" method ='POST'>
+                {% csrf_token %}
+                <input type='submit' value = 'Disable Listing'/>
+            </form>
+        {% endif %}
+        {% if listing.user.id != user.id %}
+            <form action="{% url 'watchlist' listing_id=listing.id %}" method='POST'>
+                {% csrf_token %}
+                <input type='submit' value='{% if watchlist %} Remove From {% else %}Add to {% endif %} Watchlist' />
+            </form>
+            <form action="{% url 'bid' listing_id=listing.id %}" method="post" class="bid_form">
+                {% csrf_token %}
+                {{ bid_form}}
+                <input type='submit' value="Bid">
+            </form>
+            <div class="add_comment">
+                <form action="{% url 'comment' listing_id=listing.id %}" method="post">
+                    {% csrf_token %}
+                    <textarea name="comment" cols="30" rows="10"></textarea>
+                    <input type="submit" value="Post">
+                </form>
+            </div>
+        {% endif %}
     {% else %}
-    <p>Login to Add Comment</p>
+        <p>Login to Add Comment</p>
     {% endif %}
     <div class="comments">
         <ul>
