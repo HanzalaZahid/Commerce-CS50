@@ -31,7 +31,7 @@ class Listing(models.Model):
 
 class Bid(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    listing = models.ForeignKey(Listing, on_delete=models.CASCADE)
+    listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name='bid')
     price = models.DecimalField('Price', max_digits=10, decimal_places=2)
     created_at = models.DateTimeField('Created At', default=timezone.now, editable=False)
 

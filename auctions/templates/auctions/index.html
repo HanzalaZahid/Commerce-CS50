@@ -17,11 +17,13 @@
                         {{ listing.description }}
                     </div>
                     <div class="price">
-                        2
+                        {{ listing.price }}
                     </div>
                 </div>
             </a>
         </li>
+        {% empty %}
+            <h2>No Listing Found</h2>
         {% endfor %}
     </ul>
     TODO

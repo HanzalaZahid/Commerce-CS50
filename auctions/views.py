@@ -22,10 +22,21 @@ class BidForm(forms.Form):
 # VIEWS GOES HERE
 def index(request):
     listings = Listing.objects.filter(status = True)
+    for listing in listings:
+        listing_price = Bid.objects.filter(listing = listing).aggregate(Max('price'))
+        listing.price = listing_price['price__max']
     return render(request, "auctions/index.html", {
         'listings'   :   listings,
     })
 
+def show_by_category(request, category_id):
+    listings = Listing.objects.filter(category=category_id, status=True)
+    for listing in listings:
+        listing_price = Bid.objects.filter(listing = listing).aggregate(Max('price'))
+        listing.price = listing_price['price__max']
+    return render(request, "auctions/index.html", {
+        'listings'   :   listings,
+    })
 
 def login_view(request):
     if request.method == "POST":
@@ -82,9 +93,14 @@ def disbale_listing(request, listing_id):
     if request.method == 'POST':
         try:
             listing = Listing.objects.get(id = listing_id)
-            listing.status = False
-            listing.save()
-            return render(request, 'auctions/index.html')
+            if listing.user.id == request.user.id:
+                listing.status = False
+                listing.save()
+                return render(request, 'auctions/index.html')
+            else:
+                return render(request, 'aunctions/error.html',{
+                    'message' : 'Not Allowed'
+                })
         except Listing.DoesNotExist:
             return render(request, 'auctions/error.html', {
             'message' : '404 - Listing Not Found'
@@ -186,3 +202,15 @@ def show_watchlist(request):
         return render(request, 'auctions/error.html', {
             'message': 'Login To View Watchlist'
         })
+    
+def show_categories(request):
+    try:
+        categories = Category.objects.all()
+        return render(request, 'auctions/categories.html', {
+            'categories': categories
+        })
+    except Category.DoesNotExist:
+        return render(request, 'auctions/error.html',{
+            'message': '404 - Category Not Found'
+        })
+    
