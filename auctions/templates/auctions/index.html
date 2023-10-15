@@ -10,7 +10,11 @@
                     {{ listing.title }}
                 </div>
                 <div class="image">
+                    {% if listing.image %}
                     <img src="{{ listing.image }}" alt="">
+                    {% else %}
+                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQulVpB9YDxnnJBgPdrm5Rc5x6xmJH0xO1FYihUJpEiDSvHEOgSBSHnADEC-NLfeIQ-vos&usqp=CAU" alt="">
+                    {% endif %}
                 </div>
                 <div class="foot">
                     <div class="description">
@@ -26,5 +30,4 @@
             <h2>No Listing Found</h2>
         {% endfor %}
     </ul>
-    TODO
 {% endblock %}

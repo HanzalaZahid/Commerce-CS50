@@ -1,6 +1,7 @@
 from django import forms
 from django.db.models import Max
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
@@ -18,6 +19,16 @@ class BidForm(forms.Form):
         highest_bid_price = highest_bid.price + 1 if highest_bid else 1
         self.fields['price'] = forms.DecimalField(label = 'Price', min_value=highest_bid_price)
 
+class ListingForm(forms.Form):
+    title = forms.CharField(label='Title',max_length=64)
+    description = forms.CharField(label="Description", widget=forms.Textarea)
+    image = forms.URLField(label='Image Url', required=False)
+    category = forms.ModelChoiceField(
+        queryset= Category.objects.all(),
+        empty_label='Select Category',
+        label = 'Category',
+    )
+
 
 # VIEWS GOES HERE
 def index(request):
@@ -28,6 +39,42 @@ def index(request):
     return render(request, "auctions/index.html", {
         'listings'   :   listings,
     })
+
+@login_required
+def create(request):
+    if request.method == 'POST':
+        form = ListingForm(request.POST)
+        if form.is_valid():
+            title = form.cleaned_data['title']
+            desc = form.cleaned_data['description']
+            img_url = form.cleaned_data['image']
+            category = form.cleaned_data['category']
+            user = User.objects.get(id = request.user.id)
+            try:
+                new_listing = Listing(
+                    user = user,
+                    title=title,
+                    description=desc,
+                    image=img_url,
+                    category=category
+                )
+                new_listing.save()
+                messages.success(request,"Listing created successfully")
+                return HttpResponseRedirect(reverse(show, args=[new_listing.id]))
+            except Exception as e:
+                return render(request, "auctions/error.html", {
+                    'message': "Listing Creation Failed",
+                    'exception' : e
+                })
+        else:
+            return render(request, 'auctions/create.html', {
+                'form': form
+            })
+    else:
+        form = ListingForm()
+        return render(request, 'auctions/create.html',{
+            'form': form,
+        })
 
 def show_by_category(request, category_id):
     listings = Listing.objects.filter(category=category_id, status=True)
@@ -57,11 +104,9 @@ def login_view(request):
     else:
         return render(request, "auctions/login.html")
 
-
 def logout_view(request):
     logout(request)
     return HttpResponseRedirect(reverse("index"))
-
 
 def register(request):
     if request.method == "POST":
@@ -96,7 +141,15 @@ def disbale_listing(request, listing_id):
             if listing.user.id == request.user.id:
                 listing.status = False
                 listing.save()
-                return render(request, 'auctions/index.html')
+                try:
+                    higest_bid = Bid.objects.filter(listing=listing).order_by('-price').first()
+                    if higest_bid is not None:
+                        winner = User.objects.get(id=higest_bid.user.id)
+                        listing.sold_to = winner
+                        listing.save()
+                except Bid.DoesNotExist:
+                    pass
+                return HttpResponseRedirect(reverse('index'))
             else:
                 return render(request, 'aunctions/error.html',{
                     'message' : 'Not Allowed'
@@ -112,7 +165,7 @@ def disbale_listing(request, listing_id):
 
 def show(request, listing_id):
     try:
-        listing = Listing.objects.get(id = listing_id, status = True)
+        listing = Listing.objects.get(id = listing_id)
     except Listing.DoesNotExist:
         return render(request, 'auctions/error.html', {
             'message' : '404 - Listing Not Found'
@@ -157,7 +210,6 @@ def bid(request, listing_id):
         'message' : 'Not Allowed'
     })
            
-
 def comment(request, listing_id):
     if request.method == 'POST':
         user_id = request.user.id

@@ -1,12 +1,15 @@
 {% extends "auctions/layout.html" %}
 {% block body %}
 
-    <div class="listing_details">
+    <!-- Display Listing Details -->
+    <div class="listing-details">
         <div class="title">
             {{ listing.title }}
         </div>
         <div class="image">
-            <img src="{{ listing.image }}" alt="">
+            {% if listing.image %}
+                <img src="{{ listing.image }}" alt="">
+            {% endif %}
         </div>
         <div class="category">
             <div class="label">
@@ -25,46 +28,71 @@
             <div class="label">
                 Current Bid
             </div>
-            <div class="danger">$</div>
-            g{{ highestbid }}
+            <div class="amount">$ {{ highestbid }}</div>
         </div>
+        
+        <!-- Check if Listing is Sold or Won -->
+        {% if not listing.status %}
+        <div class="sold-out">
+            <div class="status danger">
+                Sold Out
+            </div>
+        </div>
+        {% endif %}
+        {% if user.is_authenticated and listing.sold_to.id == request.user.id %}
+        <div class="sold">
+            <div class="status success">
+                You've Won This Bid
+            </div>
+        </div>
+        {% endif %}
     </div>
 
+    <!-- User Authentication Check -->
     {% if user.is_authenticated %}
+        <!-- Display Messages -->
         {% if messages %}
             <ul>
                 {% for message in messages %}
-                <li {% if message.tags %} class="{{message.tags}}" {% endif %}>{{ message }}</li>
+                <li {% if message.tags %} class="{{ message.tags }}" {% endif %}>{{ message }}</li>
                 {% endfor %}
             </ul>
         {% endif %}
-        {% if listing.user.id == user.id %}
-            <form action="{% url 'disable_listing' listing_id=listing.id %}" method ='POST'>
+        
+        <!-- Listing Owner Actions -->
+        {% if listing.user.id == user.id and listing.status %}
+            <form action="{% url 'disable_listing' listing_id=listing.id %}" method="POST">
                 {% csrf_token %}
-                <input type='submit' value = 'Disable Listing'/>
+                <input type="submit" value="Disable Listing" />
             </form>
         {% endif %}
+        
+        <!-- User Actions -->
         {% if listing.user.id != user.id %}
-            <form action="{% url 'watchlist' listing_id=listing.id %}" method='POST'>
+            <form action="{% url 'watchlist' listing_id=listing.id %}" method="POST">
                 {% csrf_token %}
-                <input type='submit' value='{% if watchlist %} Remove From {% else %}Add to {% endif %} Watchlist' />
+                <input type="submit" value="{% if watchlist %} Remove From {% else %} Add to {% endif %} Watchlist" />
             </form>
-            <form action="{% url 'bid' listing_id=listing.id %}" method="post" class="bid_form">
+            {% if listing.status %}
+            <form action="{% url 'bid' listing_id=listing.id %}" method="post" class="bid-form">
                 {% csrf_token %}
-                {{ bid_form}}
-                <input type='submit' value="Bid">
+                {{ bid_form }}
+                <input type="submit" value="Place Bid">
             </form>
-            <div class="add_comment">
+            <div class="add-comment">
                 <form action="{% url 'comment' listing_id=listing.id %}" method="post">
                     {% csrf_token %}
                     <textarea name="comment" cols="30" rows="10"></textarea>
-                    <input type="submit" value="Post">
+                    <input type="submit" value="Post Comment">
                 </form>
             </div>
+            {% endif %}
         {% endif %}
     {% else %}
-        <p>Login to Add Comment</p>
+        <p>Please log in to add a comment.</p>
     {% endif %}
+
+    <!-- Display Comments -->
     <div class="comments">
         <ul>
             {% for comment in comments %}
